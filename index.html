@@ -2,25 +2,36 @@
 <html>
 <head>
     <title>Pokémon GO Regional Guesser</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
     <style>
-        #image-container {
-            display: flex;
-            width: 100%;
-            height: 60vh; /* Adjust this value as needed */
-            border: none;
-            margin: 0 auto;
-            justify-content: center;
-            align-items: center;
-            background-size: contain; /* This will prevent the image from being stretched */
-            background-position: center; /* This will center the image */
-            background-repeat: no-repeat; /* This will prevent the image from repeating */
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 12px;
+            font-family: Arial, sans-serif;
         }
 
-        #image-container img {
-            width: 100%; /* This will make the image take up the entire width */
-            height: auto;
-            object-fit: contain; /* This will prevent the image from being stretched */
+        #image-container {
+            width: 100%;
+            /* Big on desktop, but won't shove controls off-screen */
+            height: min(60vh, 520px);
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            border: none;
+            margin: 0 auto;
+
+            background-size: contain;     /* do NOT crop */
+            background-position: center;
+            background-repeat: no-repeat;
+
+            /* Optional: gives a nicer feel when image has transparency/empty areas */
+            background-color: #00000008;
+            border-radius: 12px;
         }
 
         #filename,
@@ -29,38 +40,54 @@
         #feedback {
             text-align: center;
             margin: 10px auto;
-            font-size: 1.5em;
+            font-size: 1.1rem;
+            line-height: 1.2;
         }
 
         #guess-input {
             display: block;
-            width: 400px;
-            margin: 20px auto;
-            padding: 10px;
-            font-size: 1.5em;
+            width: min(520px, 92vw);
+            margin: 14px auto;
+            padding: 12px;
+            font-size: 1.05rem;
         }
 
         #guess-button,
         #try-again-button {
             display: block;
-            margin: 0 auto;
-            padding: 20px 40px;
-            font-size: 1.5em;
+            width: min(520px, 92vw);
+            margin: 10px auto;
+            padding: 12px;
+            font-size: 1.05rem;
         }
 
-        @media (max-aspect-ratio: 3/2) {
+        /* Phone portrait tweaks */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+
             #image-container {
-                width: 100%;
-                height: auto;
-                padding-top: 75%; /* Adjust this value as needed based on the aspect ratio of the image without black bars */
-                margin-left: auto;
-                margin-right: auto;
-                overflow-x: hidden; /* This will prevent horizontal scrolling */
-                background-size: cover; /* This will make the image as large as possible while still being contained within the background positioning area */
-                background-position: center; /* This will center the image within the positioning area */
+            /* Make sure controls stay visible */
+            height: 48vh;
+            border-radius: 10px;
+            }
+
+            #filename,
+            #score,
+            #high-score,
+            #feedback {
+            font-size: 1rem;
+            margin: 8px auto;
+            }
+
+            #guess-input,
+            #guess-button,
+            #try-again-button {
+            width: 94vw;
+            font-size: 1rem;
+            padding: 12px;
             }
         }
-    </style>
+        </style>
 </head>
 <body>
 <div id="image-container"></div>
