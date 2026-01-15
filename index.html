@@ -109,7 +109,7 @@
     let endpoint = 'https://script.google.com/macros/s/AKfycbyqztQN4LbUX7v700bkJcsxSuU-TEUXsjy2s1bvxXsCjx-82QO8NM0R_20jmkV9s_oV/exec'; // Replace with the URL of your Apps Script web app
 
     // Fetch the events data from the JSON file
-    fetch('events.json')
+    fetch('regionals_merged.json')
         .then(response => response.json())
         .then(data => {
             events = data;
