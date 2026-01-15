@@ -94,6 +94,7 @@
 <div id="filename"></div>
 <input id="guess-input" list="event-names" placeholder="Guess the event..." onkeypress="handleKeyPress(event)">
 <button id="guess-button" onclick="checkGuess(document.getElementById('guess-input').value)">Guess</button>
+<button id="skip-button" onclick="skipImage()">Skip</button>
 <button id="try-again-button" onclick="resetGame()">Try Again</button>
 <datalist id="event-names">
     <!-- JavaScript will populate this with the event names -->
@@ -201,6 +202,10 @@
         if (!currentHighScore) {
             return setHighScore(score)
         }
+    }
+
+    function skipImage() {
+    showRandomImage();
     }
 
     function sendDataToGoogleSheet() {
