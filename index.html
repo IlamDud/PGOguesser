@@ -193,7 +193,7 @@
         ]).then(([eventData, secretData]) => {
             events = eventData;
             secrets = secretData || {};
-            eventNames = Object.keys(events).sort();
+            eventNames = Object.keys(events);;
 
             loadHighScore();
             nextImage();
@@ -247,7 +247,7 @@
                 streak = 0;
                 secretUnlocks = 0;
                 document.getElementById("feedback").innerText =
-                    `Wrong! It was ${currentEvent}`;
+                    `Good Effort! It was ${currentEvent}`;
                 document.getElementById("guess-button").style.display = "none";
                 document.getElementById("try-again-button").style.display = "block";
             }
@@ -304,7 +304,7 @@
             btn.style.display = (secretUnlocks > 0 || hasCachedHint) ? "block" : "none";
             btn.innerText = hasCachedHint ? "Reopen Hint" : "Use Secret Unlock";
 
-            status.innerText = `Streak: ${streak}/10 Unlocks: ${secretUnlocks}`;
+            status.innerText = `Progress to special hint: ${streak}/10 - Special Hints: ${secretUnlocks}`;
         }
 
         function resetGame() {
