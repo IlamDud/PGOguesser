@@ -15,21 +15,14 @@
 
         #image-container {
             width: 100%;
-            /* Big on desktop, but won't shove controls off-screen */
             height: min(60vh, 520px);
-
             display: flex;
             justify-content: center;
             align-items: center;
-
-            border: none;
             margin: 0 auto;
-
-            background-size: contain;     /* do NOT crop */
+            background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
-
-            /* Optional: gives a nicer feel when image has transparency/empty areas */
             background-color: #00000008;
             border-radius: 12px;
         }
@@ -37,23 +30,28 @@
         #filename,
         #score,
         #high-score,
-        #feedback {
+        #feedback,
+        #secret-status {
             text-align: center;
             margin: 10px auto;
             font-size: 1.1rem;
-            line-height: 1.2;
+        }
+
+        /* Guess input + dropdown wrapper */
+        #guess-wrap {
+            width: min(520px, 92vw);
+            margin: 10px auto;
         }
 
         #guess-input {
-            display: block;
-            width: min(520px, 92vw);
-            margin: 14px auto;
+            width: 100%;
             padding: 12px;
             font-size: 1.05rem;
         }
 
         #guess-button,
-        #try-again-button {
+        #try-again-button,
+        #secret-button {
             display: block;
             width: min(520px, 92vw);
             margin: 10px auto;
@@ -61,172 +59,390 @@
             font-size: 1.05rem;
         }
 
-        /* Phone portrait tweaks */
-        @media (max-width: 600px) {
-            body { padding: 10px; }
-
-            #image-container {
-            /* Make sure controls stay visible */
-            height: 48vh;
-            border-radius: 10px;
-            }
-
-            #filename,
-            #score,
-            #high-score,
-            #feedback {
-            font-size: 1rem;
+        #secret-button {
+            width: auto;          /* override full width */
+            min-width: 200px;
+            padding: 8px 14px;
+            font-size: 0.95rem;
             margin: 8px auto;
+        }
+
+        /* Custom dropdown (in page flow, not overlay) */
+        .dropdown {
+            width: 100%;
+            margin-top: 6px;
+            border: 1px solid #00000022;
+            border-radius: 10px;
+            background: #fff;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .dropdown-item {
+            width: 100%;
+            text-align: left;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item.active {
+            background: #00000010;
+        }
+
+        @media (max-width: 600px) {
+            #image-container {
+                height: 48vh;
             }
 
-            #guess-input,
+            body {
+                padding: 10px;
+            }
+
+            #guess-wrap,
             #guess-button,
             #try-again-button {
-            width: 94vw;
-            font-size: 1rem;
-            padding: 12px;
+                width: 94vw;
+                font-size: 1.05rem;
+                padding: 12px;
+            }
+
+            /* Secret Hint button stays smaller on mobile */
+            #secret-button {
+                width: auto;
+                min-width: 180px;
+                padding: 8px 12px;
+                font-size: 0.9rem;
             }
         }
-        </style>
+    </style>
 </head>
+
 <body>
-<div id="image-container"></div>
-<div id="filename"></div>
-<input id="guess-input" list="event-names" placeholder="Guess the event..." onkeypress="handleKeyPress(event)">
-<button id="guess-button" onclick="checkGuess(document.getElementById('guess-input').value)">Guess</button>
-<button id="try-again-button" onclick="resetGame()">Try Again</button>
-<datalist id="event-names">
-    <!-- JavaScript will populate this with the event names -->
-</datalist>
-<div id="score">Score: 0</div>
-<div id="high-score">High Score: 0</div>
-<div id="feedback"></div>
-<script>
-    let events = {};
-    let score = 0;
-    let currentEvent = "";
-    let sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15); // Generate a session ID
-    let endpoint = 'https://script.google.com/macros/s/AKfycbyqztQN4LbUX7v700bkJcsxSuU-TEUXsjy2s1bvxXsCjx-82QO8NM0R_20jmkV9s_oV/exec'; // Replace with the URL of your Apps Script web app
+    <div id="image-container"></div>
 
-    // Fetch the events data from the JSON file
-    fetch('regionals_merged.json')
-        .then(response => response.json())
-        .then(data => {
-            events = data;
+    <!-- Hint Modal -->
+    <div id="hint-modal" style="
+        display:none;
+        position:fixed;
+        inset:0;
+        background: rgba(0,0,0,0.65);
+        z-index:9999;
+        align-items:center;
+        justify-content:center;
+        padding:16px;
+    ">
+        <div style="background:#fff; border-radius:12px; padding:12px; width:min(720px,96vw);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>Champion Hint</strong>
+                <button onclick="closeHintModal()">Close</button>
+            </div>
+            <img id="hint-image" style="width:100%; margin-top:10px; border-radius:10px;">
+        </div>
+    </div>
 
-            let datalist = document.getElementById('event-names');
-            datalist.innerHTML = "";
+    <!-- Guess input + dropdown -->
+    <div id="guess-wrap">
+        <input
+            id="guess-input"
+            placeholder="Guess the event..."
+            autocomplete="off"
+            oninput="onGuessInput()"
+            onfocus="openDropdown()"
+            onkeydown="handleGuessKey(event)"
+        >
+        <div id="event-dropdown" class="dropdown" style="display:none;"></div>
+    </div>
 
-            for (let key of Object.keys(events)) {
-                let option = document.createElement('option');
-                option.value = key;
-                datalist.appendChild(option);
-            }
+    <button id="guess-button" onclick="submitGuess()">Guess</button>
+    <button id="try-again-button" onclick="resetGame()" style="display:none;">Try Again</button>
 
-            checkHighScore();
-            showRandomImage();
+    <button id="secret-button" onclick="useSecretUnlock()" style="display:none;">
+        Use Secret Unlock
+    </button>
+
+    <div id="secret-status"></div>
+
+    <div id="score">Score: 0</div>
+    <div id="high-score">High Score: 0</div>
+    <div id="feedback"></div>
+
+    <script>
+        let events = {};
+        let secrets = {};
+        let eventNames = [];
+
+        let currentEvent = "";
+        let score = 0;
+        let streak = 0;
+        let secretUnlocks = 0;
+
+        // Per-question hint cache
+        let activeHintEvent = null;
+        let activeHintImage = null;
+
+        // Dropdown state
+        let dropdownIndex = -1;
+
+        Promise.all([
+            fetch("regionals_merged.json").then(r => r.json()),
+            fetch("secret_hints.json").then(r => r.json()).catch(() => ({}))
+        ]).then(([eventData, secretData]) => {
+            events = eventData;
+            secrets = secretData || {};
+            eventNames = Object.keys(events).sort();
+
+            loadHighScore();
+            nextImage();
+            updateUI();
         });
 
-    function showRandomImage() {
-        let validEvents = Object.keys(events).filter(
-            k => Array.isArray(events[k]) && events[k].length > 0
-        );
+        function nextImage() {
+            const keys = Object.keys(events).filter(
+                k => Array.isArray(events[k]) && events[k].length > 0
+            );
 
-        if (validEvents.length === 0) {
-            document.getElementById('feedback').innerText =
-                "No images available yet. Add filenames to events.json.";
-            return;
+            currentEvent = keys[Math.floor(Math.random() * keys.length)];
+
+            activeHintEvent = null;
+            activeHintImage = null;
+
+            const imgs = events[currentEvent];
+            const img = imgs[Math.floor(Math.random() * imgs.length)];
+
+            document.getElementById("image-container").style.backgroundImage =
+                `url("randomframes/${encodeURIComponent(img)}")`;
+
+            document.getElementById("guess-input").value = "";
+            document.getElementById("feedback").innerText = "";
+            document.getElementById("guess-button").style.display = "block";
+            document.getElementById("try-again-button").style.display = "none";
+
+            closeDropdown();
         }
 
-        let randomIndex = Math.floor(Math.random() * validEvents.length);
-        currentEvent = validEvents[randomIndex];
+        function submitGuess() {
+            const guess = document.getElementById("guess-input").value;
 
-        let images = events[currentEvent];
-        let randomImage = images[Math.floor(Math.random() * images.length)];
+            if (!(guess in events)) {
+                alert("Pick an event from the list.");
+                return;
+            }
 
-        let encodedImage = encodeURI('randomframes/' + randomImage);
-        document.getElementById('image-container').style.backgroundImage =
-            `url("${encodedImage}")`;
-
-        document.getElementById('guess-input').value = "";
-        document.getElementById('guess-input').style.display = 'block';
-        document.getElementById('guess-button').style.display = 'block';
-        document.getElementById('try-again-button').style.display = 'none';
-        document.getElementById('feedback').innerText = '';
-    }
-
-    function handleKeyPress(event) {
-        if (event.keyCode === 13) { // Check if the key pressed was Enter
-            checkGuess(document.getElementById('guess-input').value);
-        }
-    }
-
-    function checkGuess(guess) {
-        if (Object.keys(events).includes(guess)) {
             if (guess === currentEvent) {
                 score++;
-                showRandomImage();
+                streak++;
+
+                if (streak % 2 === 0) {
+                    secretUnlocks++;
+                    document.getElementById("feedback").innerText =
+                        `${streak} in a row! Champion Hint unlocked.`;
+                }
+
+                nextImage();
             } else {
-                document.getElementById('guess-input').style.display = 'none';
-                document.getElementById('guess-button').style.display = 'none';
-                document.getElementById('try-again-button').style.display = 'block';
-                document.getElementById('feedback').innerText = "Good try, but no. It was " + currentEvent + ".";
+                streak = 0;
+                secretUnlocks = 0;
+                document.getElementById("feedback").innerText =
+                    `Wrong! It was ${currentEvent}`;
+                document.getElementById("guess-button").style.display = "none";
+                document.getElementById("try-again-button").style.display = "block";
             }
-            document.getElementById('score').innerText = "Score: " + score;
-        } else {
-            alert("Please select an event from the list.");
-        }
-        checkHighScore();
-        sendDataToGoogleSheet();
-    }
 
-    function setHighScore(newScore, isHigher) {
-        document.getElementById('high-score').innerText = 'High Score: ' + newScore;
-        window.localStorage.setItem('high-score', newScore);
-
-        if (isHigher) {
-            document.getElementById('high-score').style.color = 'red';
-        }
-    }
-
-    function checkHighScore() {
-        const currentHighScore = Number(window.localStorage.getItem('high-score'));
-
-        setHighScore(currentHighScore);
-
-        if (score > currentHighScore) {
-            return setHighScore(score, true);
+            updateUI();
         }
 
-        if (!currentHighScore) {
-            return setHighScore(score)
-        }
-    }
+        function useSecretUnlock() {
+            if (activeHintEvent === currentEvent && activeHintImage) {
+                openHintModal(activeHintImage);
+                return;
+            }
 
-    function sendDataToGoogleSheet() {
-        fetch(endpoint, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                sessionId: sessionId,
-                score: score,
-                imageLoaded: document.getElementById('image-container').style.backgroundImage
-            })
-        })
-            .catch((error) => {
-                console.error('Error:', error);
+            if (secretUnlocks <= 0) return;
+
+            const list = secrets[currentEvent];
+            if (!Array.isArray(list) || list.length === 0) {
+                document.getElementById("feedback").innerText =
+                    "No champion hint for this event yet.";
+                return;
+            }
+
+            secretUnlocks--;
+
+            const img = list[Math.floor(Math.random() * list.length)];
+            const encoded = "secrets/" + encodeURIComponent(img);
+
+            activeHintEvent = currentEvent;
+            activeHintImage = encoded;
+
+            openHintModal(encoded);
+            updateUI();
+        }
+
+        function openHintModal(src) {
+            document.getElementById("hint-image").src = src;
+            document.getElementById("hint-modal").style.display = "flex";
+        }
+
+        function closeHintModal() {
+            document.getElementById("hint-modal").style.display = "none";
+        }
+
+        function updateUI() {
+            document.getElementById("score").innerText = `Score: ${score}`;
+            updateHighScore();
+
+            const btn = document.getElementById("secret-button");
+            const status = document.getElementById("secret-status");
+
+            const hasCachedHint =
+                activeHintEvent === currentEvent && !!activeHintImage;
+
+            btn.style.display = (secretUnlocks > 0 || hasCachedHint) ? "block" : "none";
+            btn.innerText = hasCachedHint ? "Reopen Hint" : "Use Secret Unlock";
+
+            status.innerText = `Streak: ${streak}/10 Unlocks: ${secretUnlocks}`;
+        }
+
+        function resetGame() {
+            score = 0;
+            streak = 0;
+            secretUnlocks = 0;
+            updateUI();
+            nextImage();
+        }
+
+        function loadHighScore() {
+            const hs = Number(localStorage.getItem("highScore") || 0);
+            const el = document.getElementById("high-score");
+            el.innerText = `High Score: ${hs}`;
+            el.style.color = "#000";
+        }
+
+        function updateHighScore() {
+            const el = document.getElementById("high-score");
+            const hs = Number(localStorage.getItem("highScore") || 0);
+
+            if (score > hs) {
+                localStorage.setItem("highScore", score);
+                el.innerText = `High Score: ${score}`;
+                el.style.color = "red";
+            } else {
+                el.innerText = `High Score: ${hs}`;
+                el.style.color = "#000";
+            }
+        }
+
+        /* Dropdown logic */
+
+        function openDropdown() {
+            renderDropdown(document.getElementById("guess-input").value);
+        }
+
+        function closeDropdown() {
+            const dd = document.getElementById("event-dropdown");
+            dd.style.display = "none";
+            dd.innerHTML = "";
+            dropdownIndex = -1;
+        }
+
+        function onGuessInput() {
+            dropdownIndex = -1;
+            renderDropdown(document.getElementById("guess-input").value);
+        }
+
+        function renderDropdown(filterText) {
+            const dd = document.getElementById("event-dropdown");
+            const q = (filterText || "").toLowerCase().trim();
+
+            const filtered = eventNames.filter(name =>
+                name.toLowerCase().includes(q)
+            );
+
+            if (filtered.length === 0) {
+                closeDropdown();
+                return;
+            }
+
+            dd.style.display = "block";
+            dd.innerHTML = "";
+
+            filtered.slice(0, 60).forEach((name, i) => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "dropdown-item";
+                btn.textContent = name;
+
+                // mousedown selects BEFORE input loses focus
+                btn.addEventListener("mousedown", e => {
+                    e.preventDefault();
+                    selectDropdownItem(name);
+                });
+
+                btn.addEventListener("mouseenter", () => {
+                    dropdownIndex = i;
+                    highlightDropdown(dd.querySelectorAll(".dropdown-item"));
+                });
+
+                dd.appendChild(btn);
             });
-    }
+        }
 
-    function resetGame() {
-        score = 0; // reset the score when "Try Again" is clicked
-        showRandomImage();
-        document.getElementById('score').innerText = "Score: " + score;
-        document.getElementById('high-score').style.color = "#000";
-    }
-</script>
+        function selectDropdownItem(name) {
+            const input = document.getElementById("guess-input");
+            input.value = name;
+            closeDropdown();
+            input.focus();
+        }
+
+        function handleGuessKey(e) {
+            const dd = document.getElementById("event-dropdown");
+            const items = dd.querySelectorAll(".dropdown-item");
+
+            if (e.key === "Enter") {
+                if (dd.style.display !== "none" && dropdownIndex >= 0) {
+                    e.preventDefault();
+                    items[dropdownIndex].dispatchEvent(
+                        new MouseEvent("mousedown", { bubbles: true })
+                    );
+                    return;
+                }
+                submitGuess();
+                return;
+            }
+
+            if (e.key === "Escape") {
+                closeDropdown();
+                return;
+            }
+
+            if (dd.style.display === "none" || items.length === 0) return;
+
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                dropdownIndex = Math.min(dropdownIndex + 1, items.length - 1);
+                highlightDropdown(items);
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                dropdownIndex = Math.max(dropdownIndex - 1, 0);
+                highlightDropdown(items);
+            }
+        }
+
+        function highlightDropdown(items) {
+            items.forEach((el, idx) => {
+                el.classList.toggle("active", idx === dropdownIndex);
+                if (idx === dropdownIndex) el.scrollIntoView({ block: "nearest" });
+            });
+        }
+
+        document.addEventListener("click", e => {
+            const wrap = document.getElementById("guess-wrap");
+            if (!wrap.contains(e.target)) closeDropdown();
+        });
+    </script>
 </body>
 </html>
