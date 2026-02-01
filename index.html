@@ -236,7 +236,7 @@
                 score++;
                 streak++;
 
-                if (streak % 10 === 0) {
+                if (streak % 2 === 0) {
                     secretUnlocks++;
                     document.getElementById("feedback").innerText =
                         `${streak} in a row! Champion Hint unlocked.`;
@@ -302,7 +302,7 @@
                 activeHintEvent === currentEvent && !!activeHintImage;
 
             btn.style.display = (secretUnlocks > 0 || hasCachedHint) ? "block" : "none";
-            btn.innerText = hasCachedHint ? "Reopen Hint" : "Use Secret Unlock";
+            btn.innerText = hasCachedHint ? "Reopen Hint" : "Use Special Hint";
 
             status.innerText = `Progress to special hint: ${streak}/10 - Special Hints: ${secretUnlocks}`;
         }
