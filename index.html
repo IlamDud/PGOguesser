@@ -69,14 +69,23 @@
 
         /* Custom dropdown (in page flow, not overlay) */
         .dropdown {
-            width: 100%;
-            margin-top: 6px;
+            position: fixed;              /* anchor to screen, not page flow */
+            left: 0;
+            top: 0;
+            width: 0;                     /* will be set in JS */
+            margin: 0;
+
             border: 1px solid #00000022;
             border-radius: 10px;
             background: #fff;
-            max-height: 240px;
+
+            max-height: 240px;            /* will be set in JS */
             overflow-y: auto;
+
+            z-index: 9998;                /* below modal (9999), above page */
+            -webkit-overflow-scrolling: touch;
         }
+
 
         .dropdown-item {
             width: 100%;
@@ -199,6 +208,34 @@
             nextImage();
             updateUI();
         });
+
+        function positionDropdown() {
+            const dd = document.getElementById("event-dropdown");
+            const input = document.getElementById("guess-input");
+
+            if (dd.style.display === "none") return;
+
+            const rect = input.getBoundingClientRect();
+
+            const vv = window.visualViewport;
+            const viewportHeight = vv ? vv.height : window.innerHeight;
+            const viewportTop = vv ? vv.offsetTop : 0;
+
+            // Place dropdown directly under the input in the visible viewport
+            const top = viewportTop + rect.bottom + 6;
+            const left = rect.left;
+            const width = rect.width;
+
+            // Available space until bottom of visible viewport (keyboard reduces vv.height)
+            const available = (viewportTop + viewportHeight) - top - 8;
+            const maxH = Math.max(120, Math.min(available, 260)); // clamp
+
+            dd.style.top = `${top}px`;
+            dd.style.left = `${left}px`;
+            dd.style.width = `${width}px`;
+            dd.style.maxHeight = `${maxH}px`;
+        }
+
 
         function nextImage() {
             const keys = Object.keys(events).filter(
@@ -347,7 +384,9 @@
         /* Dropdown logic */
 
         function openDropdown() {
+            document.getElementById("guess-input").scrollIntoView({ block: "center" });
             renderDropdown(document.getElementById("guess-input").value);
+            positionDropdown();
         }
 
         function closeDropdown() {
@@ -360,6 +399,7 @@
         function onGuessInput() {
             dropdownIndex = -1;
             renderDropdown(document.getElementById("guess-input").value);
+            positionDropdown();
         }
 
         function renderDropdown(filterText) {
@@ -376,6 +416,7 @@
             }
 
             dd.style.display = "block";
+            positionDropdown();
             dd.innerHTML = "";
 
             filtered.slice(0, 60).forEach((name, i) => {
@@ -451,6 +492,15 @@
             const wrap = document.getElementById("guess-wrap");
             if (!wrap.contains(e.target)) closeDropdown();
         });
+    
+    window.addEventListener("resize", positionDropdown);
+    window.addEventListener("scroll", positionDropdown, true);
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", positionDropdown);
+        window.visualViewport.addEventListener("scroll", positionDropdown);
+    }
+
     </script>
 </body>
 </html>
