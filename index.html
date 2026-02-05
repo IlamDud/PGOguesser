@@ -246,6 +246,10 @@
             } else {
                 streak = 0;
                 secretUnlocks = 0;
+
+                activeHintEvent = null;
+                activeHintImage = null;
+
                 document.getElementById("feedback").innerText =
                     `Good Effort! It was ${currentEvent}`;
                 document.getElementById("guess-button").style.display = "none";
@@ -311,6 +315,10 @@
             score = 0;
             streak = 0;
             secretUnlocks = 0;
+
+            activeHintEvent = null;
+            activeHintImage = null;
+
             updateUI();
             nextImage();
         }
