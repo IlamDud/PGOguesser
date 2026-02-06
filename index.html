@@ -236,10 +236,6 @@
             // Pop gives us a unique frame for this run
             const pick = runPool.pop();
 
-            console.log(
-                `[RUN] Showing: ${pick.img} | Event: ${pick.event} | Remaining frames: ${runPool.length}`
-            );
-
             currentEvent = pick.event;
 
             activeHintEvent = null;
