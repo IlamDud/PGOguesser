@@ -175,6 +175,8 @@
         let secrets = {};
         let eventNames = [];
 
+        let runPool = [];
+
         let currentEvent = "";
         let score = 0;
         let streak = 0;
@@ -196,25 +198,55 @@
             eventNames = Object.keys(events);;
 
             loadHighScore();
+            initRunPool();
             nextImage();
             updateUI();
         });
 
+        function initRunPool() {
+            // Flatten all (event, img) pairs into one list
+            runPool = [];
+
+            for (const [eventName, frames] of Object.entries(events)) {
+                if (!Array.isArray(frames) || frames.length === 0) continue;
+                for (const img of frames) {
+                    runPool.push({ event: eventName, img });
+                }
+            }
+
+            // Fisher–Yates shuffle for true random order
+            for (let i = runPool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [runPool[i], runPool[j]] = [runPool[j], runPool[i]];
+            }
+        }
+
         function nextImage() {
-            const keys = Object.keys(events).filter(
-                k => Array.isArray(events[k]) && events[k].length > 0
+            // If pool is empty (start of run or ran out), rebuild it
+            if (!runPool || runPool.length === 0) {
+                initRunPool();
+            }
+
+            // If still empty, nothing to show
+            if (runPool.length === 0) {
+                alert("No frames found in regionals_merged.json.");
+                return;
+            }
+
+            // Pop gives us a unique frame for this run
+            const pick = runPool.pop();
+
+            console.log(
+                `[RUN] Showing: ${pick.img} | Event: ${pick.event} | Remaining frames: ${runPool.length}`
             );
 
-            currentEvent = keys[Math.floor(Math.random() * keys.length)];
+            currentEvent = pick.event;
 
             activeHintEvent = null;
             activeHintImage = null;
 
-            const imgs = events[currentEvent];
-            const img = imgs[Math.floor(Math.random() * imgs.length)];
-
             document.getElementById("image-container").style.backgroundImage =
-                `url("randomframes/${encodeURIComponent(img)}")`;
+                `url("randomframes/${encodeURIComponent(pick.img)}")`;
 
             document.getElementById("guess-input").value = "";
             document.getElementById("feedback").innerText = "";
@@ -223,6 +255,7 @@
 
             closeDropdown();
         }
+
 
         function submitGuess() {
             const guess = document.getElementById("guess-input").value;
@@ -319,6 +352,7 @@
             activeHintEvent = null;
             activeHintImage = null;
 
+            initRunPool();
             updateUI();
             nextImage();
         }
