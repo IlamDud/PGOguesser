@@ -337,7 +337,7 @@
             btn.style.display = (secretUnlocks > 0 || hasCachedHint) ? "block" : "none";
             btn.innerText = hasCachedHint ? "Reopen Hint" : "Use Special Hint";
 
-            status.innerText = `Progress to special hint: ${streak}/10 - Special Hints: ${secretUnlocks}`;
+            status.innerText = `Progress to special hint: ${streak%10}/10 - Special Hints: ${secretUnlocks}`;
         }
 
         function resetGame() {
